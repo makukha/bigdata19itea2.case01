@@ -1,0 +1,36 @@
+version: '3.3'
+
+services:
+
+  master:
+    build: .
+    ports:
+      - 8080:8080
+      - 7077:7077
+    volumes:
+      - '.:/code'
+    working_dir: '/code'
+    environment:
+      - SPARK_SERVICE=master
+
+  worker:
+    build: .
+    depends_on:
+      - master
+    ports:
+      - 8080
+    volumes:
+      - '.:/code'
+    working_dir: '/code'
+    environment:
+      - SPARK_SERVICE=worker
+      - SPARK_MASTER_HOST=master
+
+  client:
+    build: .
+    depends_on:
+      - master
+      - worker
+    volumes:
+      - '.:/code'
+    working_dir: '/code'
