@@ -1,5 +1,5 @@
 import aiofiles
-from aiohttp import ClientSession
+import aiohttp
 import asyncio
 from collections import defaultdict
 import csv
@@ -18,7 +18,6 @@ YAHOO_ARCH = BUILDDIR / 'yahoo.tbz2'
 YAHOO_DATA = BUILDDIR / 'yahoo.csv'
 YAHOO_HTMLS = BUILDDIR / 'yahoo_html'
 YAHOO_PARQUET = BUILDDIR / 'yahoo.parquet'
-
 
 NASDAQ_FILES = (
     DATADIR / 'nasdaq' / 'amex.csv',
@@ -52,16 +51,16 @@ def scrape_descriptions_async():
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 Safari/605.1.15',
         }
 
-    async def fetch(symbol, session):
+    async def fetch_one(symbol, session):
         async with session.get(f'https://finance.yahoo.com/quote/{symbol}/profile') as response:
             text = await response.read()
             async with aiofiles.open(YAHOO_HTMLS / f'{symbol}.html', 'wb') as f:
                 await f.write(text)
-            progress.update(1)
+            progress.update()
 
     async def run(symbols):
-        async with ClientSession(headers=headers) as session:
-            tasks = (asyncio.ensure_future(fetch(symbol, session)) for symbol in symbols)
+        async with aiohttp.ClientSession(headers=headers) as session:
+            tasks = (asyncio.ensure_future(fetch_one(symbol, session)) for symbol in symbols)
             await asyncio.gather(*tasks)
 
     loop = asyncio.get_event_loop()
@@ -114,7 +113,7 @@ def decompress_descriptions(encoding='utf-8'):
                 tarinfo = tarfile.TarInfo(name=f'yahoo/{symbol}.html')
                 tarinfo.size = len(bytes)
                 archive.addfile(tarinfo=tarinfo, fileobj=s)
-                progress.update(1)
+                progress.update()
 
     progress.close()
 
@@ -134,7 +133,6 @@ def parse_descriptions(src=YAHOO_PARQUET, dst=YAHOO_DATA):
                 table = reader.read_row_group(g).to_pydict()
                 for symbol, html in zip(table['symbol'], table['html']):
                     tree = lxml.html.fromstring(html)
-
                     row = {'symbol': symbol.strip()}
                     row['description'] = '\n'.join(tree.xpath('//section[h2//*[text()="Description"]]/p/text()'))
                     info = (tree.xpath('//div[@class="asset-profile-container"]//p[span[text()="Sector"]]') or [None])[0]
@@ -148,7 +146,10 @@ def parse_descriptions(src=YAHOO_PARQUET, dst=YAHOO_DATA):
 
 
 def main():
-    scrape_descriptions_async()
+    # scrape_descriptions_async()
+    # compress_descriptions(batch_size=500)
+    # decompress_descriptions()
+    parse_descriptions()
 
 
 if __name__ == '__main__':

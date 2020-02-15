@@ -1,10 +1,7 @@
-import io
 from invoke import task
-import json
 import os
 from pathlib import Path
 import re
-import sys
 
 PTY = (os.name != 'nt')
 DOCKER_RUN = f'docker run {"-it" if PTY else ""} --rm'
@@ -18,9 +15,9 @@ BUILDDIR.mkdir(parents=True, exist_ok=True)
 
 
 @task
-def build(c):
+def build(c, args=''):
     """Build docker image."""
-    c.run(f'docker-compose build', pty=PTY)
+    c.run(f'docker-compose build {args}', pty=PTY)
 
 
 @task
@@ -54,7 +51,7 @@ def shell(c):
     c.run(f'docker-compose run master /bin/bash', pty=PTY)
 
 
-@task()
+@task
 def pyspark(c):
     """Run PySpark in client container."""
     c.run(f'docker-compose run --rm --no-deps client pyspark', pty=PTY)
