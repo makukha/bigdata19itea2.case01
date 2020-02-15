@@ -34,14 +34,15 @@ RUN set -ex && \
 
 # Spark
 
-ARG SPARK_VERSION=2.4.4
-ARG HADOOP_VERSION=2.7
-
 ARG SPARK_HOME=/opt/spark
 ENV SPARK_HOME=${SPARK_HOME}
 
+ARG SPARK_VERSION=3.0.0-preview2
+ARG HADOOP_VERSION=2.7
+ARG SPARK_URL=http://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
+
 RUN set -ex && \
-    curl -s -o /tmp/spark.tgz http://apache.volia.net/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+    curl -s -o /tmp/spark.tgz ${SPARK_URL} && \
     mkdir ${SPARK_HOME} && \
     tar -xzf /tmp/spark.tgz -C ${SPARK_HOME} --strip-components 1 && \
     rm /tmp/spark.tgz
