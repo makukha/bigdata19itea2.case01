@@ -18,23 +18,29 @@ def main():
     # read data
     yahoo = spark.read.csv(f'{BUILDDIR}/yahoo.csv', header=True)
     data = yahoo.select(['sector', 'description']).dropna()
+    breakpoint()
 
     # tokenize texts based on regular expression
     tokenize = RegexTokenizer(inputCol='description', outputCol='words_all', pattern=r'\W')
+    breakpoint()
 
     # remove stop words
     stopwords = '\n'.join((DATADIR/'stopwords'/f).read_text().strip() for f in ('mysql.txt', 'nltk.txt')).splitlines()
     remove_stopwords = StopWordsRemover(inputCol='words_all', outputCol='words_clean').setStopWords(stopwords)
+    breakpoint()
 
     # get words frequency using simple count (bag of words)
     add_wordcount = CountVectorizer(inputCol='words_clean', outputCol='words_count', vocabSize=1000, minDF=2)
+    breakpoint()
 
     # get tf-idf words frequencies
     add_wordtf = HashingTF(inputCol='words_clean', outputCol='words_tf', numFeatures=10000)
     add_wordidf = IDF(inputCol='words_tf', outputCol='words_tfidf', minDocFreq=2)
+    breakpoint()
 
     # prepare output values
     index_target = StringIndexer(inputCol='sector', outputCol='label')
+    breakpoint()
 
     # data preparation pipeline
     pipeline_wordcount = Pipeline(stages=[
@@ -48,11 +54,11 @@ def main():
     # apply data preparation pipeline
     model_wordcount = pipeline_wordcount.fit(data)
     prepared = model_wordcount.transform(data)
-
     breakpoint()
 
     # split to training and testing
     training, testing = prepared.randomSplit([0.8, 0.2], seed=100500)
+    breakpoint()
 
     # fit logistic regression models
 
@@ -62,12 +68,16 @@ def main():
     logistic_tfidf = LogisticRegression(regParam=0.3, elasticNetParam=0,
         featuresCol='words_tfidf', labelCol='label', predictionCol='prediction', probabilityCol='probability')
 
+    breakpoint()
+
     evaluator = MulticlassClassificationEvaluator(predictionCol='prediction', metricName='accuracy')
     for model, name in (
             (logistic_wordcount, 'Word count + Logistic regression'),
             (logistic_tfidf, 'TF-IDF + Logistic regression')):
         predicted = model.fit(training).transform(testing)
         print(f'{name} model accuracy = {evaluator.evaluate(predicted)}')
+
+    breakpoint()
 
     # # fit hyperparameters
     # grid = (ParamGridBuilder()
